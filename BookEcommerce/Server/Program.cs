@@ -1,6 +1,7 @@
 global using BookEcommerce.Shared;
 global using Microsoft.EntityFrameworkCore;
 global using BookEcommerce.Server.Data;
+global using BookEcommerce.Server.Services;
 using Microsoft.AspNetCore.ResponseCompression;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,8 @@ builder.Services.AddRazorPages();
 // Add swagger UI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddScoped<IProductService, ProductService>();
 
 var app = builder.Build();
 

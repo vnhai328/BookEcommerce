@@ -15,7 +15,7 @@
     align-items: flex-start;
 }
 
-.media-body{
+.media-body {
     flex: 1;
 }
 
@@ -24,9 +24,6 @@
     text-align: center;
 }
 
-.price {
-    color: green;
-}
 
 @media (max-witdth: 1023.98px){
     .media {
