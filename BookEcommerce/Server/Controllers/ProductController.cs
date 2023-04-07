@@ -1,4 +1,5 @@
 ﻿using BookEcommerce.Server.Data;
+using BookEcommerce.Server.Services.CacheService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,9 +11,12 @@ namespace BookEcommerce.Server.Controllers
     public class ProductController : ControllerBase
     {
         private readonly IProductService _productService;
-        public ProductController(IProductService productService) 
+        private readonly ICacheService _cacheService;
+
+        public ProductController(IProductService productService, ICacheService cacheService) 
         {
             _productService = productService;
+            _cacheService = cacheService;
         }
 
         [HttpGet]

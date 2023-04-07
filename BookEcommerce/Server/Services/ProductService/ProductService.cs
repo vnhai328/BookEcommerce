@@ -1,18 +1,33 @@
-﻿namespace BookEcommerce.Server.Services.ProductService
+﻿using BookEcommerce.Server.Services.CacheService;
+using BookEcommerce.Shared;
+using Microsoft.AspNetCore.Http.HttpResults;
+using System.Collections.Generic;
+
+namespace BookEcommerce.Server.Services.ProductService
 {
+    //reponse -> cacheData
     public class ProductService : IProductService
     {
         private readonly DataContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ICacheService _cacheService;
 
-        public ProductService(DataContext context, IHttpContextAccessor httpContextAccessor)
+        public ProductService(DataContext context, IHttpContextAccessor httpContextAccessor, ICacheService cacheService)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
+            _cacheService = cacheService;
         }
         public async Task<ServiceResponse<List<Product>>> GetProductsAsync()
         {
-            var resposne = new ServiceResponse<List<Product>>()
+            var cacheData = _cacheService.GetData<ServiceResponse<List<Product>>>("products");
+
+            if(cacheData != null && cacheData.Data.Count() > 0)
+            {
+                return cacheData;
+            }
+
+            cacheData = new ServiceResponse<List<Product>>()
             {
                 Data = await _context.Products
                     .Where(p => p.Visible && !p.Deleted)
@@ -20,7 +35,10 @@
                     .Include(p => p.Images)
                     .ToListAsync()
             };
-            return resposne;
+
+            var exprityTime = DateTimeOffset.Now.AddSeconds(120);
+            _cacheService.SetData<ServiceResponse<List<Product>>>("products", cacheData, exprityTime);
+            return cacheData;
         }
 
         public async Task<ServiceResponse<Product>> GetProductAsync(int productId)
@@ -58,7 +76,14 @@
 
         public async Task<ServiceResponse<List<Product>>> GetProductsByCategory(string categoryUrl)
         {
-            var response = new ServiceResponse<List<Product>>
+            var cacheData = _cacheService.GetData<ServiceResponse<List<Product>>>("getProductsByCategory");
+
+            if(cacheData != null && cacheData.Data.Count() > 0)
+            {
+                return cacheData;
+            }
+
+            cacheData = new ServiceResponse<List<Product>>
             {
                 Data = await _context.Products
                     .Where(p => p.Category.Url.ToLower().Equals(categoryUrl.ToLower()) && p.Visible && !p.Deleted)
@@ -66,7 +91,9 @@
                     .Include(p => p.Images)
                     .ToListAsync()
             };
-            return response;
+            var exprityTime = DateTimeOffset.Now.AddSeconds(90);
+            _cacheService.SetData<ServiceResponse<List<Product>>>($"getProductsByCategory{categoryUrl}", cacheData, exprityTime);
+            return cacheData;
         }
 
         public async Task<ServiceResponse<ProductSearchResult>> SearchProducts(string searchTExt, int page)
@@ -141,7 +168,12 @@
 
         public async Task<ServiceResponse<List<Product>>> GetFeatureProducts()
         {
-            var response = new ServiceResponse<List<Product>> 
+            var cacheData = _cacheService.GetData<ServiceResponse<List<Product>>>("getFeatureProducts");
+            if(cacheData != null && cacheData.Data.Count() > 0)
+            {
+                return cacheData;
+            }
+            cacheData = new ServiceResponse<List<Product>> 
             { 
                 Data = await _context.Products
                     .Where(p=>p.Featured && p.Visible && !p.Deleted)
@@ -149,13 +181,23 @@
                     .Include(p => p.Images)
                     .ToListAsync()
             };
-            return response;
+
+            var exprityTime = DateTimeOffset.Now.AddSeconds(90);
+            _cacheService.SetData<ServiceResponse<List<Product>>>("getFeatureProducts", cacheData, exprityTime);
+            return cacheData;
         }
 
         //Admin
         public async Task<ServiceResponse<List<Product>>> GetAdminProducts()
         {
-            var resposne = new ServiceResponse<List<Product>>()
+            var cacheData = _cacheService.GetData<ServiceResponse<List<Product>>>("getAdminProducts");
+            
+            if(cacheData != null && cacheData.Data.Count() > 0) 
+            { 
+                return cacheData; 
+            }
+
+            cacheData = new ServiceResponse<List<Product>>()
             {
                 Data = await _context.Products
                   .Where(p => !p.Deleted)
@@ -164,7 +206,11 @@
                   .Include(p => p.Images)
                   .ToListAsync()
             };
-            return resposne;
+
+            var exprityTime = DateTimeOffset.Now.AddSeconds(90);
+            _cacheService.SetData<ServiceResponse<List<Product>>>("getAdminProducts", cacheData, exprityTime);
+
+            return cacheData;
         }
 
         public async Task<ServiceResponse<Product>> CreateProduct(Product product)
@@ -173,9 +219,12 @@
             {
                 variant.ProductType = null;
             }
-            _context.Products.Add(product);
+            var addedProduct = await _context.Products.AddAsync(product);
+            var exprityTime = DateTimeOffset.Now.AddSeconds(90);
+            _cacheService.SetData<ServiceResponse<Product>>($"product{product.Id}", new ServiceResponse<Product> { Data = addedProduct.Entity }, exprityTime);
             await _context.SaveChangesAsync();
-            return new ServiceResponse<Product> { Data = product };
+            //return new ServiceResponse<Product> { Data = product };
+            return new ServiceResponse<Product> { Data = addedProduct.Entity };
 
         }
 
@@ -239,9 +288,9 @@
                     Data = false,
                     Messeage = "Product not found."
                 };
-            }
-
+            }          
             dbProduct.Deleted = true;
+            _cacheService.RemoveData($"product{productId}");
             await _context.SaveChangesAsync();
             return new ServiceResponse<bool> { Data = true };
         }

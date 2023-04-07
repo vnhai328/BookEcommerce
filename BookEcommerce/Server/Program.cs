@@ -10,6 +10,7 @@ global using BookEcommerce.Server.Services.OrderService;
 global using BookEcommerce.Server.Services.PaymentService;
 global using BookEcommerce.Server.Services.AddressService;
 global using BookEcommerce.Server.Services.ProductTypeService;
+global using BookEcommerce.Server.Services.CacheService;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -37,6 +38,7 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<IProductTypeService, ProductTypeService>();
+builder.Services.AddScoped<ICacheService, CacheService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options => 
